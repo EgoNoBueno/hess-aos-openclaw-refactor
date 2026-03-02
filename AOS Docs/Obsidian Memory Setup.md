@@ -242,7 +242,7 @@ On the **VPS** Syncthing UI (accessible via `http://100.x.x.x:8384/` over Tailsc
 3. Share it with your Mac device.
 4. Accept the share on the Mac, pointing to a local folder (e.g., `~/Documents/openclaw-workspace`).
 
-> **UFW note**: Syncthing uses port 22000 (TCP+UDP) for sync traffic. Since both devices are on the same Tailscale tailnet, no additional firewall rules are needed — Tailscale handles the routing.
+> **UFW note**: Syncthing uses port 22000 (TCP+UDP) for sync traffic. If you followed the VPS Install guide, port 22000 is already open on `tailscale0` (Step 9 of that guide). No public internet exposure — Tailscale routes the traffic.
 
 ---
 
@@ -437,7 +437,28 @@ You can add any `.md` files to the vault — the agent can search across all of 
 
 ## Memory Config Reference
 
-Final `openclaw.json` memory section (full example):
+Final `openclaw.json` memory section. **Phase 1** — use this minimal block to start:
+
+```json5
+{
+  agents: {
+    defaults: {
+      workspace: "/home/node/.openclaw/workspace",
+      memorySearch: {
+        provider: "openai",
+        model: "text-embedding-3-small",
+      },
+    },
+  },
+  plugins: {
+    slots: {
+      memory: "memory-core",
+    },
+  },
+}
+```
+
+**Phase 2+ full example** (add these when the system is stable and you want advanced recall):
 
 ```json5
 {
@@ -452,8 +473,8 @@ Final `openclaw.json` memory section (full example):
             enabled: true,
             vectorWeight: 0.7,
             textWeight: 0.3,
-            mmr: { enabled: true, lambda: 0.7 },
-            temporalDecay: { enabled: true, halfLifeDays: 30 },
+            mmr: { enabled: true, lambda: 0.7 },           // Phase 2+: diversity reranking
+            temporalDecay: { enabled: true, halfLifeDays: 30 }, // Phase 2+: recency boost
           },
         },
       },
