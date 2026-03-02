@@ -21,8 +21,8 @@ This builds and runs the gateway from the local source tree rather than pulling 
 
 - SSH access to your VPS (`ssh root@YOUR_VPS_IP` or a sudo user)
 - A GitHub account with access to this repo (or the code already on the VPS)
-- API key(s) for whichever AI provider you plan to use (Anthropic, OpenAI, etc.)
-- Bot credentials for any channels you want to connect (Telegram token, Discord token, etc.)
+- **OpenAI API key** (Phase 1 provider — required to configure the AI at Step 13)
+- Bot credentials for any channels you want to connect (Discord token, Telegram token, etc.)
 
 ---
 
@@ -207,6 +207,7 @@ This is the key step that replaces the SSH tunnel. The gateway port is open on t
 ```bash
 ufw allow OpenSSH
 ufw allow in on tailscale0 to any port 18789 proto tcp   # allow from tailnet only
+ufw allow in on tailscale0 to any port 22000               # Syncthing sync (needed for Obsidian vault)
 ufw deny 18789                                             # block from public internet
 ufw enable
 ```
@@ -220,9 +221,12 @@ ufw status
 Expected output includes:
 ```
 18789                      ALLOW IN    on tailscale0
+22000                      ALLOW IN    on tailscale0
 18789                      DENY
 OpenSSH                    ALLOW IN    Anywhere
 ```
+
+> **Why port 22000?** Syncthing (used in the Obsidian memory setup) syncs on port 22000 TCP+UDP. With UFW default-deny-incoming, this port must be explicitly allowed on the tailscale0 interface or Syncthing will silently fail to sync. If you are not setting up Obsidian vault sync, you can omit that line.
 
 ---
 
@@ -421,11 +425,12 @@ Adds ~300 MB to the image.
 
 ## Firewall hardening (already done in Step 9)
 
-The setup restricts port 18789 to `tailscale0` only:
+The setup restricts port 18789 to `tailscale0` only, and opens port 22000 for Syncthing vault sync:
 
 ```bash
 ufw allow OpenSSH
 ufw allow in on tailscale0 to any port 18789 proto tcp
+ufw allow in on tailscale0 to any port 22000
 ufw deny 18789
 ufw enable
 ```
