@@ -289,21 +289,30 @@ Replace `100.x.x.x` with your VPS Tailscale IP from Step 3. Paste your `OPENCLAW
 
 ## Step 13 — Configure your AI provider
 
+> **Deployment phases:**
+> - **Phase 1 (now):** Single cloud provider — OpenAI. Get the system working first.
+> - **Phase 2:** Add local Ollama on your home computer (free inference, via Tailscale).
+> - **Phase 3:** Multi-model swarm — Architect (Claude/GPT-4o) + Worker (Haiku/DeepSeek) + Critic (local Ollama). See `AOS Docs/Obsidian Memory Setup.md` for the embedding side of Phase 2+.
+
 Inside the Control UI (or via `openclaw config set` after exec-ing into the container):
 
 ```bash
-# Example: set Anthropic API key
-docker compose exec openclaw-gateway node openclaw.mjs config set anthropic.apiKey YOUR_KEY
-```
+# Phase 1: Set OpenAI API key (start here)
+docker compose exec openclaw-gateway node openclaw.mjs config set openai.apiKey YOUR_OPENAI_KEY
 
-Common config options:
-
-```bash
-# Set model
-docker compose exec openclaw-gateway node openclaw.mjs config set model.default claude-opus-4-5
+# Set default model
+docker compose exec openclaw-gateway node openclaw.mjs config set model.default gpt-4o-mini
 
 # Set gateway mode
 docker compose exec openclaw-gateway node openclaw.mjs config set gateway.mode local
+```
+
+Alternative providers (swap in as needed):
+
+```bash
+# Anthropic (Claude)
+docker compose exec openclaw-gateway node openclaw.mjs config set anthropic.apiKey YOUR_ANTHROPIC_KEY
+docker compose exec openclaw-gateway node openclaw.mjs config set model.default claude-opus-4-5
 ```
 
 ---
