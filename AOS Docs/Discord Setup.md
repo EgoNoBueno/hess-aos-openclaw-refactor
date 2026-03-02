@@ -272,7 +272,7 @@ docker compose exec openclaw-gateway cat /home/node/.openclaw/openclaw.json
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Bot appears offline in Discord | Gateway not running or token wrong | Check `docker compose logs openclaw-gateway` for errors |
-| Bot does not respond to DMs | Pairing not approved | Run `openclaw pairing list discord` and approve the code |
+| Bot does not respond to DMs | Pairing not approved | Run `docker compose exec openclaw-gateway node openclaw.mjs pairing list discord` and approve the code |
 | Bot does not respond in channels | Server not in allowlist | Complete Step 12; verify Server ID is correct |
 | `[discord] Invalid token` in logs | Token was regenerated | Go back to Developer Portal → Bot → Reset Token; update `.env` |
 | Cannot DM the bot | Server DMs disabled | Re-enable DMs in server Privacy Settings (Step 7) |
