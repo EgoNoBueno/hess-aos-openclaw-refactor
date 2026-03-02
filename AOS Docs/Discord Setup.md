@@ -112,54 +112,37 @@ All commands below run on the VPS (SSH in first or use your terminal from Step 1
 
 ---
 
-### Step 8 — Load the Discord Plugin
+### Step 8 — Set Your Bot Token and Enable Discord
 
-The Discord integration is a plugin located at `extensions/discord/` in the repo.  
-Install it into your OpenClaw config from inside the running container:
-
-```bash
-docker compose exec openclaw-gateway node openclaw.mjs plugin install discord
-```
-
-Or if you prefer to set up config directly, skip ahead to Step 9.
-
----
-
-### Step 9 — Set Your Bot Token (Securely)
-
-Set the token via the OpenClaw CLI — **do not put it in chat**:
+The Discord integration is built into this repo's Docker image — no separate install step is needed.  
+Set the token via the OpenClaw CLI on the VPS — **do not paste it in chat**:
 
 ```bash
 docker compose exec openclaw-gateway \
   node openclaw.mjs config set channels.discord.token '"YOUR_BOT_TOKEN"' --json
 
 docker compose exec openclaw-gateway \
-  node openclaw.mjs config set channels.discord.enabled true --json
+  node openclaw.mjs config set channels.discord.enabled true
 ```
 
 Replace `YOUR_BOT_TOKEN` with the token you copied in Step 4.  
-The extra quotes (`'"..."'`) are required because the value must be stored as a JSON string.
+The inner double quotes (`'"..."'`) are required: the outer single quotes are shell quoting; the inner double quotes tell the config parser to treat the value as a JSON string.
 
-Alternatively, set the token as an environment variable.  
-Add this line to your `.env` file in the repo root on the VPS:
+Alternatively, set the token as an environment variable in your `.env` file in the repo root on the VPS:
 
 ```
 DISCORD_BOT_TOKEN=YOUR_BOT_TOKEN
 ```
 
-Then restart the gateway:
-
-```bash
-docker compose restart openclaw-gateway
-```
+The env var is used as a fallback for the default account only. The `config set` method above is recommended.
 
 > **Security note:** The `.env` file on the VPS is only readable by root. Never commit it to git.
 
 ---
 
-### Step 10 — Restart the Gateway
+### Step 9 — Restart the Gateway
 
-After setting the token, restart so the Discord plugin connects:
+After setting the token, restart so Discord connects:
 
 ```bash
 docker compose restart openclaw-gateway
@@ -178,11 +161,11 @@ If you see it, the bot is online. Press `Ctrl+C` to stop following logs.
 
 ## Part 3 — Pair Your Discord Account
 
-This links your Discord identity to OpenClaw so only you can talk to the agent.
+This links your Discord identity to OpenClaw so only you can control the agent.
 
 ---
 
-### Step 11 — Send Your Agent a DM in Discord
+### Step 10 — Send Your Agent a DM in Discord
 
 1. Open Discord on your home computer.
 2. Find the bot in your server's member list.
@@ -192,7 +175,7 @@ This links your Discord identity to OpenClaw so only you can talk to the agent.
 
 ---
 
-### Step 12 — Approve the Pairing Code
+### Step 11 — Approve the Pairing Code
 
 On the VPS, approve the code:
 
@@ -214,7 +197,7 @@ This lets your agent respond in specific channels on your Discord server, not ju
 
 ---
 
-### Step 13 — Add Your Server to the Allowlist
+### Step 12 — Add Your Server to the Allowlist
 
 ```bash
 docker compose exec openclaw-gateway node openclaw.mjs config set \
@@ -233,7 +216,7 @@ Setting `requireMention: false` means your agent responds to every message in al
 
 ---
 
-### Step 14 — Restart and Verify
+### Step 13 — Restart and Verify
 
 ```bash
 docker compose restart openclaw-gateway
@@ -290,7 +273,7 @@ docker compose exec openclaw-gateway cat /home/node/.openclaw/openclaw.json
 |---|---|---|
 | Bot appears offline in Discord | Gateway not running or token wrong | Check `docker compose logs openclaw-gateway` for errors |
 | Bot does not respond to DMs | Pairing not approved | Run `openclaw pairing list discord` and approve the code |
-| Bot does not respond in channels | Server not in allowlist | Complete Step 13; verify Server ID is correct |
+| Bot does not respond in channels | Server not in allowlist | Complete Step 12; verify Server ID is correct |
 | `[discord] Invalid token` in logs | Token was regenerated | Go back to Developer Portal → Bot → Reset Token; update `.env` |
 | Cannot DM the bot | Server DMs disabled | Re-enable DMs in server Privacy Settings (Step 7) |
 | Bot responds but cannot see message content | Message Content Intent missing | Enable it in Developer Portal → Bot → Privileged Gateway Intents |
