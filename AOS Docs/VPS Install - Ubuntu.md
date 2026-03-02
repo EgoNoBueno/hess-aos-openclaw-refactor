@@ -195,7 +195,7 @@ services:
 
 Key points:
 - `restart: unless-stopped` keeps the gateway alive after reboots.
-- The port is bound to `127.0.0.1` by default — access it via SSH tunnel, not open to the internet.
+- The port binds to all host interfaces so Tailscale can route traffic in; UFW (Step 9) restricts it to the `tailscale0` interface only.
 - `--allow-unconfigured` lets the gateway start before a model is configured; remove it once you have configured a provider.
 
 ---
@@ -475,7 +475,7 @@ docker compose down
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `docker compose build` killed (exit 137) | OOM during `pnpm install` | Add 2 GB swap (Step 8) or upgrade VPS RAM |
+| `docker compose build` killed (exit 137) | OOM during `pnpm install` | Add 2 GB swap (see Step 10) or upgrade VPS RAM |
 | Gateway starts then immediately exits | Missing `.env` values | Check `docker compose logs openclaw-gateway` for missing env vars |
 | `http://100.x.x.x:18789/` unreachable | Tailscale not connected | Run `tailscale status` on both machines; both must be on the same tailnet |
 | Config is lost after restart | Volume not mounted | Confirm `OPENCLAW_CONFIG_DIR` in `.env` and that `chown 1000:1000` was run |
