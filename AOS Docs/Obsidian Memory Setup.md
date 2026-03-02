@@ -308,7 +308,16 @@ The agent should recall the preference from `MEMORY.md` without you having to re
 
 The default `memory-core` plugin searches memory files using text matching. For **semantic search** (finds related notes even when the wording differs), configure an embedding provider.
 
-### Option A — OpenAI embeddings (recommended for VPS)
+**AOS deployment phases for embeddings:**
+- **Phase 1 — Start here:** Option A (OpenAI). Uses the same API key you already configured in Step 13 of the VPS install guide. No extra setup.
+- **Phase 2 — After the system is working:** Options B, C, or D. Add free local embeddings using the VPS itself (B), Ollama on your home computer (C), or the QMD hybrid backend (D).
+- **Phase 3 — Multi-model swarm:** The full Architect/Worker/Critic architecture described in the AOS Specification. Ollama handles the Critic/verification role locally while cloud models handle reasoning and drafting. Embeddings at that point would typically run via Option C.
+
+---
+
+### Option A — OpenAI embeddings *(Phase 1 — start here)*
+
+Uses your existing OpenAI API key. No additional configuration needed beyond your provider setup.
 
 ```bash
 docker compose exec openclaw-gateway \
@@ -317,24 +326,32 @@ docker compose exec openclaw-gateway \
 docker compose exec openclaw-gateway \
   node openclaw.mjs config set agents.defaults.memorySearch.model '"text-embedding-3-small"' --json
 
-# Uses your existing OpenAI key from anthropic/openai provider config.
+# Uses your existing OpenAI key automatically.
 # If needed, set it explicitly:
 docker compose exec openclaw-gateway \
   node openclaw.mjs config set agents.defaults.memorySearch.remote.apiKey '"YOUR_OPENAI_KEY"' --json
 ```
 
-### Option B — Local embeddings (no API key required)
+---
+
+### Option B — Local VPS embeddings *(Phase 2 — no API key required)*
+
+OpenClaw runs the embedding model directly on the VPS. No API key and no home computer needed, but adds CPU/RAM load to the VPS.
 
 ```bash
 docker compose exec openclaw-gateway \
   node openclaw.mjs config set agents.defaults.memorySearch.provider '"local"' --json
 ```
 
-On first use, OpenClaw auto-downloads a ~600 MB GGUF embedding model. Build time on the VPS will take a few minutes on first run.
+On first use, OpenClaw auto-downloads a ~600 MB GGUF embedding model. Allow a few minutes on first run.
 
-### Option D — Ollama on your home computer (free, private, via Tailscale)
+---
 
-If you already have [Ollama](https://ollama.ai) installed on your home computer (as in the AOS Advanced Build setup), you can point OpenClaw's memory embeddings at it using Ollama's OpenAI-compatible API. This keeps all embedding computation local and costs nothing.
+### Option C — Ollama on your home computer *(Phase 2 — free, private, via Tailscale)*
+
+> **Prerequisite:** Ollama installed and running on your home computer, reachable from the VPS over Tailscale. Do not configure this until Phase 2 — your system should be working with OpenAI first.
+
+Point OpenClaw's memory embeddings at your home computer's Ollama via its OpenAI-compatible API. All embedding computation stays local and costs nothing.
 
 **On your home computer**, pull an embedding-capable model:
 
@@ -342,7 +359,7 @@ If you already have [Ollama](https://ollama.ai) installed on your home computer 
 ollama pull nomic-embed-text
 ```
 
-**On the VPS**, configure OpenClaw to use your home computer's Ollama via Tailscale:
+**On the VPS**, configure OpenClaw to use it:
 
 ```bash
 # Replace 100.x.x.x with your home computer's Tailscale IP
@@ -361,7 +378,7 @@ docker compose exec openclaw-gateway \
   agents.defaults.memorySearch.remote.apiKey '"ollama"' --json
 ```
 
-> **Requirements:** Ollama must be running on your home computer and reachable from the VPS over Tailscale. Test with: `curl http://100.x.x.x:11434/api/tags` from the VPS (replace the IP with your home computer's Tailscale IP). Ollama does not require a real API key — `"ollama"` is the conventional placeholder.
+> **Verify connectivity first:** `curl http://100.x.x.x:11434/api/tags` from the VPS should return your model list. Ollama does not require a real API key — `"ollama"` is the conventional placeholder.
 
 Good embedding models for Ollama:
 
@@ -371,9 +388,11 @@ Good embedding models for Ollama:
 | `mxbai-embed-large` | `ollama pull mxbai-embed-large` | ~670 MB | Higher quality, slower |
 | `all-minilm` | `ollama pull all-minilm` | ~46 MB | Smallest, lower quality |
 
-### Option C — QMD backend (BM25 + vector hybrid, experimental)
+---
 
-QMD combines keyword and vector search for the best of both worlds. On the VPS:
+### Option D — QMD backend *(Phase 2 — BM25 + vector hybrid, experimental)*
+
+QMD combines keyword and vector search. Best for large note archives where exact tokens (IDs, code symbols) matter as much as semantic meaning.
 
 ```bash
 # Install QMD (requires Bun)
