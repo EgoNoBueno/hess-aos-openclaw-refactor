@@ -195,11 +195,16 @@ Syncthing replicates the workspace folder between the VPS and your home Mac in r
 ### Step 8 — Install Syncthing on the VPS
 
 ```bash
-curl -s https://syncthing.net/release-key.txt | apt-key add -
-echo "deb https://apt.syncthing.net/ syncthing stable" > /etc/apt/sources.list.d/syncthing.list
+curl -s https://syncthing.net/release-key.txt \
+  | gpg --dearmor > /usr/share/keyrings/syncthing-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] \
+https://apt.syncthing.net/ syncthing stable" \
+  > /etc/apt/sources.list.d/syncthing.list
 apt-get update
 apt-get install -y syncthing
 ```
+
+> **Note:** The older `apt-key add` method is deprecated on Ubuntu 22.04+. The `gpg --dearmor` method above is the current standard.
 
 Start Syncthing as a background service:
 
@@ -225,6 +230,8 @@ syncthing --device-id
 On the **Mac**, get the device ID from the Syncthing web UI → Actions → Show ID.
 
 In each Syncthing UI, add the other device using its device ID. Use the VPS Tailscale IP (from Step 3 of the VPS install guide) as the address for the VPS device on the Mac side (so traffic stays on the tailnet).
+
+> **Tailscale MagicDNS tip:** If you have MagicDNS enabled (https://login.tailscale.com/admin/dns → Enable MagicDNS), you can use your VPS device name (e.g., `ubuntu-vps.your-tailnet.ts.net`) instead of its Tailscale IP. This survives IP reassignments. If MagicDNS is not set up, the raw Tailscale IP works fine.
 
 ### Step 11 — Add the shared folder in Syncthing
 
@@ -325,6 +332,45 @@ docker compose exec openclaw-gateway \
 
 On first use, OpenClaw auto-downloads a ~600 MB GGUF embedding model. Build time on the VPS will take a few minutes on first run.
 
+### Option D — Ollama on your home computer (free, private, via Tailscale)
+
+If you already have [Ollama](https://ollama.ai) installed on your home computer (as in the AOS Advanced Build setup), you can point OpenClaw's memory embeddings at it using Ollama's OpenAI-compatible API. This keeps all embedding computation local and costs nothing.
+
+**On your home computer**, pull an embedding-capable model:
+
+```bash
+ollama pull nomic-embed-text
+```
+
+**On the VPS**, configure OpenClaw to use your home computer's Ollama via Tailscale:
+
+```bash
+# Replace 100.x.x.x with your home computer's Tailscale IP
+docker compose exec openclaw-gateway \
+  node openclaw.mjs config set agents.defaults.memorySearch.provider '"openai"' --json
+
+docker compose exec openclaw-gateway \
+  node openclaw.mjs config set agents.defaults.memorySearch.model '"nomic-embed-text"' --json
+
+docker compose exec openclaw-gateway \
+  node openclaw.mjs config set \
+  agents.defaults.memorySearch.remote.baseUrl '"http://100.x.x.x:11434/v1"' --json
+
+docker compose exec openclaw-gateway \
+  node openclaw.mjs config set \
+  agents.defaults.memorySearch.remote.apiKey '"ollama"' --json
+```
+
+> **Requirements:** Ollama must be running on your home computer and reachable from the VPS over Tailscale. Test with: `curl http://100.x.x.x:11434/api/tags` from the VPS (replace the IP with your home computer's Tailscale IP). Ollama does not require a real API key — `"ollama"` is the conventional placeholder.
+
+Good embedding models for Ollama:
+
+| Model | Pull command | Size | Notes |
+|---|---|---|---|
+| `nomic-embed-text` | `ollama pull nomic-embed-text` | ~274 MB | Fast, good quality, recommended |
+| `mxbai-embed-large` | `ollama pull mxbai-embed-large` | ~670 MB | Higher quality, slower |
+| `all-minilm` | `ollama pull all-minilm` | ~46 MB | Smallest, lower quality |
+
 ### Option C — QMD backend (BM25 + vector hybrid, experimental)
 
 QMD combines keyword and vector search for the best of both worlds. On the VPS:
@@ -412,6 +458,8 @@ Final `openclaw.json` memory section (full example):
 | Agent doesn't recall memories | memory-core not enabled | Run `config set plugins.slots.memory '"memory-core"'` and restart |
 | Obsidian vault not syncing | Syncthing paused or devices disconnected | Open Syncthing UI on both machines; verify both devices show as Connected |
 | Vector search not working | No embedding provider configured | Set `agents.defaults.memorySearch.provider` (see Optional section above) |
+| Ollama embeddings failing | Ollama unreachable from VPS | Run `curl http://100.x.x.x:11434/api/tags` from the VPS; verify Tailscale is up on both machines |
+| Ollama embeddings failing | Wrong model name | Run `ollama list` on home computer; model name must match exactly what's in config |
 | `obsidian-cli` not finding the vault | Default vault not set | Run `obsidian-cli set-default "openclaw-workspace"` |
 | MEMORY.md not loading into context | File too large | Keep `MEMORY.md` under ~2,000 lines; move older entries to dated archive files |
 | Agent writes memory but Obsidian doesn't update | Syncthing sync delay | Normal — allow 5–30 seconds; check Syncthing status if longer |
