@@ -144,16 +144,15 @@ OPENCLAW_BRIDGE_PORT=18790
 OPENCLAW_CONFIG_DIR=/root/.openclaw
 OPENCLAW_WORKSPACE_DIR=/root/.openclaw/workspace
 
-# Required if you use Gmail via gog
-GOG_KEYRING_PASSWORD=change-me-now
+# Optional: required only if you use Gmail via the gog CLI tool
+# GOG_KEYRING_PASSWORD=change-me-now
 EOF
 ```
 
-Generate strong secrets to replace the placeholders:
+Generate a strong secret to replace the placeholder:
 
 ```bash
-openssl rand -hex 32   # run once for OPENCLAW_GATEWAY_TOKEN
-openssl rand -hex 32   # run again for GOG_KEYRING_PASSWORD
+openssl rand -hex 32   # for OPENCLAW_GATEWAY_TOKEN
 ```
 
 Edit `.env` and paste the generated values.
@@ -173,10 +172,8 @@ services:
     restart: unless-stopped
     environment:
       HOME: /home/node
-      NODE_ENV: production
       TERM: xterm-256color
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      GOG_KEYRING_PASSWORD: ${GOG_KEYRING_PASSWORD}
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
@@ -186,17 +183,16 @@ services:
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
     command:
       [
-        "node", "openclaw.mjs", "gateway",
-        "--bind", "${OPENCLAW_GATEWAY_BIND:-loopback}",
-        "--port", "18789",
-        "--allow-unconfigured"
+        "node", "dist/index.js", "gateway",
+        "--bind", "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port", "18789"
       ]
 ```
 
 Key points:
 - `restart: unless-stopped` keeps the gateway alive after reboots.
 - The port binds to all host interfaces so Tailscale can route traffic in; UFW (Step 9) restricts it to the `tailscale0` interface only.
-- `--allow-unconfigured` lets the gateway start before a model is configured; remove it once you have configured a provider.
+- The default bind is `lan` (exposes port to host interfaces); UFW restricts it to Tailscale only.
 
 ---
 
