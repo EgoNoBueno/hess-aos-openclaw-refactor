@@ -181,7 +181,7 @@ docker compose exec openclaw-gateway \
 
 ```bash
 docker compose exec openclaw-gateway \
-  node openclaw.mjs memory list
+  node openclaw.mjs memory status
 ```
 
 Expected output: lists any `.md` files found in the workspace. If it shows `MEMORY.md` and `SOUL.md`, memory is working.
