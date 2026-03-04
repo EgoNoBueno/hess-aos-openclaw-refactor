@@ -267,6 +267,39 @@ docker compose exec openclaw-gateway cat /home/node/.openclaw/openclaw.json
 
 ---
 
+## OpenAI Credit Grants — quick check
+
+Exactly—that is exactly where you want to look. In OpenAI’s developer world, **"Credit Grants"** are essentially your "gas tank." Even though it sounds like a "gift," this is the section OpenAI uses for **prepaid balances** as well. Based on what you're seeing:
+
+- **Balance: `$5.00 / $5.00`** means you have a full **$5.00** ready to use.
+- **Expires: Mar 31, 2027** means you have plenty of time (basically a year) to use those credits before they disappear.
+- **Usage:** Since it shows **$0.00** used so far, your bot hasn't actually spent anything yet!
+
+### How far will $5.00 go?
+
+If you chose **`gpt-4o-mini`** or **`gpt-5-nano`** during setup, $5.00 is actually a lot of money.
+
+- **`gpt-4o-mini`**: You can send/receive roughly **8 to 10 million words**. That is about 20 average-sized novels.
+- **`gpt-5-nano`**: Even more. You could practically run a small village on that $5.00.
+
+---
+
+### Is the bot talking yet?
+
+Now that we know the "gas tank" is full, let's see if the engine is actually pulling from it:
+
+1. **Check Discord:** Go to your server and @mention your bot: `@BotName are you there?`
+2. **Check the usage:** Wait about 1 minute after talking to the bot, then refresh that **Credit Grants** page.
+3. **The Result:** If it changes to something like **`$4.99 / $5.00`**, then everything is perfectly connected!
+
+### If the bot isn't responding:
+
+It usually means the **Discord Token** didn't save correctly or the **Intents** aren't turned on in the Discord Developer portal.
+
+**Does the bot show up as "Online" (green light) in your Discord server?** If it's online but ignoring you, we just need to flip one switch in the Discord settings!
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
