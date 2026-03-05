@@ -21,7 +21,7 @@ This builds and runs the gateway from the local source tree rather than pulling 
 
 - SSH access to your VPS (`ssh root@YOUR_VPS_IP` or a sudo user)
 - A GitHub account with access to this repo (or the code already on the VPS)
-- **OpenAI API key** (Phase 1 provider — required to configure the AI at Step 13)
+- **OpenAI API key** (Phase 1 provider — added to `.env` in Step 7, auto-injected into the container)
 - Bot credentials for any channels you want to connect (Discord token, Telegram token, etc.)
 
 ---
@@ -144,18 +144,23 @@ OPENCLAW_BRIDGE_PORT=18790
 OPENCLAW_CONFIG_DIR=/root/.openclaw
 OPENCLAW_WORKSPACE_DIR=/root/.openclaw/workspace
 
+# AI provider API keys — injected into the container at startup
+# Phase 1: set your OpenAI key. Leave the other blank unless you need it.
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+
 # Optional: required only if you use Gmail via the gog CLI tool
 # GOG_KEYRING_PASSWORD=change-me-now
 EOF
 ```
 
-Generate a strong secret to replace the placeholder:
+Generate a strong secret to replace the placeholder, then fill in your OpenAI API key:
 
 ```bash
 openssl rand -hex 32   # for OPENCLAW_GATEWAY_TOKEN
 ```
 
-Edit `.env` and paste the generated values.
+Edit `.env` and paste the generated token, then set your `OPENAI_API_KEY`. Your API keys will be injected via environment variable when the container starts — no separate `config set` step required.
 
 ---
 
@@ -174,6 +179,8 @@ services:
       HOME: /home/node
       TERM: xterm-256color
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
@@ -191,6 +198,7 @@ services:
 
 Key points:
 - `restart: unless-stopped` keeps the gateway alive after reboots.
+- `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` are passed from `.env` — OpenClaw reads them automatically at startup.
 - The port binds to all host interfaces so Tailscale can route traffic in; UFW (Step 9) restricts it to the `tailscale0` interface only.
 - The default bind is `lan` (exposes port to host interfaces); UFW restricts it to Tailscale only.
 
@@ -287,33 +295,30 @@ Replace `100.x.x.x` with your VPS Tailscale IP from Step 3. Paste your `OPENCLAW
 
 ---
 
-## Step 13 — Configure your AI provider
+## Step 13 — Configure your AI model
 
 > **Deployment phases:**
 > - **Phase 1 (now):** Single cloud provider — OpenAI. Get the system working first.
 > - **Phase 2:** Add local Ollama on your home computer (free inference, via Tailscale).
 > - **Phase 3:** Multi-model swarm — Architect (Claude/GPT-4o) + Worker (Haiku/DeepSeek) + Critic (local Ollama). See `AOS Docs/Obsidian Memory Setup.md` for the embedding side of Phase 2+.
 
-Inside the Control UI (or via `openclaw config set` after exec-ing into the container):
+Your API key is already injected from `.env` (set in Step 7). The only remaining step is to tell OpenClaw which model to use as default:
 
 ```bash
-# Phase 1: Set OpenAI API key (start here)
-docker compose exec openclaw-gateway node openclaw.mjs config set openai.apiKey YOUR_OPENAI_KEY
+# Phase 1: OpenAI
+docker compose exec openclaw-gateway node openclaw.mjs config set agents.defaults.model.primary openai/gpt-4o-mini
 
-# Set default model
-docker compose exec openclaw-gateway node openclaw.mjs config set model.default gpt-4o-mini
-
-# Set gateway mode
+# Set gateway mode (required so CLI commands target the local gateway)
 docker compose exec openclaw-gateway node openclaw.mjs config set gateway.mode local
 ```
 
-Alternative providers (swap in as needed):
+Alternative: switch to Anthropic (Claude) by setting `ANTHROPIC_API_KEY` in `.env` instead, then:
 
 ```bash
-# Anthropic (Claude)
-docker compose exec openclaw-gateway node openclaw.mjs config set anthropic.apiKey YOUR_ANTHROPIC_KEY
-docker compose exec openclaw-gateway node openclaw.mjs config set model.default claude-opus-4-5
+docker compose exec openclaw-gateway node openclaw.mjs config set agents.defaults.model.primary anthropic/claude-opus-4-6
 ```
+
+> **Other model IDs:** Use `openai/gpt-4o` for the full GPT-4o, or `openai/gpt-5-mini` for a cheaper fast model. For Anthropic, `anthropic/claude-sonnet-4-6` is the balanced speed/quality option.
 
 ---
 
@@ -487,6 +492,7 @@ docker compose down
 |---|---|---|
 | `docker compose build` killed (exit 137) | OOM during `pnpm install` | Add 2 GB swap (see Step 10) or upgrade VPS RAM |
 | Gateway starts then immediately exits | Missing `.env` values | Check `docker compose logs openclaw-gateway` for missing env vars |
+| AI returns "no API key" or auth error | `OPENAI_API_KEY` not set or not injected | Ensure `OPENAI_API_KEY=sk-...` is in `.env` and run `docker compose up -d openclaw-gateway` to restart |
 | `http://100.x.x.x:18789/` unreachable | Tailscale not connected | Run `tailscale status` on both machines; both must be on the same tailnet |
 | Config is lost after restart | Volume not mounted | Confirm `OPENCLAW_CONFIG_DIR` in `.env` and that `chown 1000:1000` was run |
 | `permission denied` on `/root/.openclaw` | Wrong ownership | `chown -R 1000:1000 /root/.openclaw` |
