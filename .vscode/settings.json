@@ -1,5 +1,9 @@
 {
   "editor.formatOnSave": true,
+  "editor.defaultFormatter": "REPLACE_WITH_OX_EXTENSION_ID"
+}
+{
+  "editor.formatOnSave": true,
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "[javascript]": {
