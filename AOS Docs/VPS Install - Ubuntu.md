@@ -101,11 +101,11 @@ Docker Compose version v2.x.x
 ## Step 5 — Clone this repository onto the VPS
 
 ```bash
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
+git clone https://github.com/EgoNoBueno/hess-aos-openclaw-refactor.git
+cd hess-aos-openclaw-refactor
 ```
 
-> If this is a private fork, use the appropriate repo URL and ensure your SSH key or personal access token is configured.
+> Ensure your SSH key or personal access token is configured if the repository is private.
 
 ---
 
@@ -167,13 +167,12 @@ Edit `.env` and paste the generated token, then set your `OPENAI_API_KEY`. Your 
 ## Step 8 — Review the docker-compose.yml
 
 The repo ships a `docker-compose.yml` at the root.  
-For a production VPS deployment, confirm it matches this profile (edit as needed):
+For a production VPS deployment, the key gateway service section looks like this:
 
 ```yaml
 services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
-    build: .
     restart: unless-stopped
     environment:
       HOME: /home/node
@@ -240,7 +239,7 @@ This step compiles TypeScript, bundles the UI, and produces the `dist/` output i
 It takes 5–15 minutes on first run.
 
 ```bash
-docker compose build
+docker build -t openclaw:local .
 ```
 
 > **OOM on small VPS?**  
@@ -253,7 +252,7 @@ docker compose build
 > swapon /swapfile
 > echo '/swapfile none swap sw 0 0' >> /etc/fstab
 > ```
-> Then re-run `docker compose build`.
+> Then re-run `docker build -t openclaw:local .`.
 
 ---
 
@@ -272,7 +271,7 @@ docker compose logs -f openclaw-gateway
 Look for a line like:
 
 ```
-[gateway] listening on ws://127.0.0.1:18789
+listening on ws://0.0.0.0:18789 (PID 1)
 ```
 
 Press `Ctrl+C` to stop following logs (the gateway keeps running in the background).
@@ -330,7 +329,7 @@ Confirm state is written to the host volume (not lost on restarts):
 ls -la /root/.openclaw/
 ```
 
-You should see `openclaw.json`, `credentials/`, `sessions/`, and `workspace/`.
+You should see `openclaw.json`, `agents/`, `credentials/`, and `workspace/`.
 
 Test a restart:
 
@@ -417,7 +416,7 @@ docker compose up -d openclaw-gateway
 The Dockerfile supports baking Playwright Chromium in at build time (avoids the 60–90s install on each container start):
 
 ```bash
-docker compose build --build-arg OPENCLAW_INSTALL_BROWSER=1
+docker build --build-arg OPENCLAW_INSTALL_BROWSER=1 -t openclaw:local .
 ```
 
 Adds ~300 MB to the image.
@@ -446,7 +445,7 @@ Port 18789 is unreachable from the public internet. Only devices on your tailnet
 
 ```bash
 git pull --rebase origin main
-docker compose build
+docker build -t openclaw:local .
 docker compose up -d openclaw-gateway
 ```
 
@@ -490,7 +489,7 @@ docker compose down
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `docker compose build` killed (exit 137) | OOM during `pnpm install` | Add 2 GB swap (see Step 10) or upgrade VPS RAM |
+| `docker build` killed (exit 137) | OOM during `pnpm install` | Add 2 GB swap (see Step 10) or upgrade VPS RAM |
 | Gateway starts then immediately exits | Missing `.env` values | Check `docker compose logs openclaw-gateway` for missing env vars |
 | AI returns "no API key" or auth error | `OPENAI_API_KEY` not set or not injected | Ensure `OPENAI_API_KEY=sk-...` is in `.env` and run `docker compose up -d openclaw-gateway` to restart |
 | `http://100.x.x.x:18789/` unreachable | Tailscale not connected | Run `tailscale status` on both machines; both must be on the same tailnet |
