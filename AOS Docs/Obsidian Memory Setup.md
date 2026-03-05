@@ -494,7 +494,7 @@ Final `openclaw.json` memory section. **Phase 1** — use this minimal block to 
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `memory list` returns no files | Workspace path wrong or volume not mounted | Check `docker compose exec openclaw-gateway ls /home/node/.openclaw/workspace` |
+| `memory status` shows no files | Workspace path wrong or volume not mounted | Check `docker compose exec openclaw-gateway ls /home/node/.openclaw/workspace` |
 | Agent doesn't recall memories | memory-core not enabled | Run `config set plugins.slots.memory '"memory-core"'` and restart |
 | Obsidian vault not syncing | Syncthing paused or devices disconnected | Open Syncthing UI on both machines; verify both devices show as Connected |
 | Vector search not working | No embedding provider configured | Set `agents.defaults.memorySearch.provider` (see Optional section above) |
