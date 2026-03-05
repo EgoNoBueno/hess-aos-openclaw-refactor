@@ -1,8 +1,5 @@
 {
   "recommendations": [
-    "REPLACE_WITH_OX_EXTENSION_ID"
+    "oxc.oxc-vscode"
   ]
-}
-{
-  "recommendations": ["oxc.oxc-vscode"]
 }
